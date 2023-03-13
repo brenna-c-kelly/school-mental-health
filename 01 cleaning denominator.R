@@ -3,11 +3,6 @@ library(dplyr)
 library(ggpubr)
 library(ggplot2)
 
-getwd()
-
-list.files(path = paste(getwd(), "/data"), pattern = ".csv$")
-list.files(path = paste(getwd(), "data"))
-
 # complete dataset, 2018-2023
 enr_files <- paste("data/enrollment/",
                    list.files("data/enrollment/", pattern = ".csv$"), sep = "")
