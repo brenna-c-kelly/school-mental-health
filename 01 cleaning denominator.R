@@ -8,6 +8,7 @@ getwd()
 list.files(path = paste(getwd(), "/data"), pattern = ".csv$")
 list.files(path = paste(getwd(), "data"))
 
+# complete dataset, 2018-2023
 enr_files <- paste("data/enrollment/",
                    list.files("data/enrollment/", pattern = ".csv$"), sep = "")
 
@@ -20,10 +21,8 @@ enrol <- enrol %>%
   group_by(lea.name, school.year) %>%
   summarise_if(is.numeric, sum, na.rm = TRUE)
 
-
+# data from 2013-2018, to be imputed
 enrol_imp <- enrol[-c(1:nrow(enrol)), ]
-
-
 
 enrol_imp <- data.frame(year = c(2013:2018),
                         school.lea = c(enrol$lea.name))
@@ -58,12 +57,14 @@ enrol_imp <- merge(imp_enr, enrol_imp, by = c('lea.name', 'school.year')) %>%
   select(-c(total.k.12.y)) %>%
   rename(total.k.12 = total.k.12.x)
 
+# combining complete data and data to be imputed
 enrol_all <- rbind(enrol_imp, enrol)
 
 vars <- names(enrol_all)[4:30]
 allModelsList <- lapply(paste(vars, " ~", 'total.k.12 + school.year + lea.name'), as.formula)
 allModelsResults <- lapply(allModelsList, function(x) lm(x, data = enrol_all[]))  
 
+# regression imputation
 enrol_all <- enrol_all %>%
   mutate(k = ifelse(is.na(k), predict(allModelsResults[[1]], newdata = across()), k)) %>%
   mutate(grade_1 = ifelse(is.na(grade_1), predict(allModelsResults[[2]], newdata = across()), grade_1)) %>%
@@ -92,8 +93,9 @@ enrol_all <- enrol_all %>%
   mutate(student.with.a.disability = ifelse(is.na(student.with.a.disability), predict(allModelsResults[[25]], newdata = across()), student.with.a.disability)) %>%
   mutate(homeless = ifelse(is.na(homeless), predict(allModelsResults[[26]], newdata = across()), homeless)) %>%
   mutate(preschool = ifelse(is.na(preschool), predict(allModelsResults[[27]], newdata = across()), preschool)) %>%
-  mutate(across(4:30, round))
+  mutate(across(4:30, round)) # integers only
 
+# bottom coding
 enrol_all[enrol_all < 0] <- 0
 
 write.csv(enrol_all, "enrollment_13_23.csv")
